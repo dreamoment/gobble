@@ -1,0 +1,12 @@
+package
+public
+src
+
+.idea
+.gitignore
+.npmignore
+index.html
+tsconfig.json
+tsconfig.node.json
+vite.config.ts
+*.ico

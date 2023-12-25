@@ -1,0 +1,33 @@
+{
+  "name": "@dreamoment/gobble",
+  "version": "0.0.0",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "main": "dist/index.es.js",
+  "author": "dreamoment-npm",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build:example": "vue-tsc && vite build --mode example",
+    "build:lib": "vue-tsc && vite build --mode lib",
+    "publish:patch": "npm version patch && npm publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/three": "^0.159.0",
+    "@vitejs/plugin-vue": "^4.5.2",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8",
+    "vite-plugin-dts": "^3.6.4",
+    "vue": "^3.3.11",
+    "vue-tsc": "^1.8.25"
+  },
+  "dependencies": {
+    "normalize.css": "^8.0.1",
+    "three": "^0.160.0"
+  }
+}
