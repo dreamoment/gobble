@@ -6,17 +6,22 @@
 
 ## gobble 是什么 ?
 
-双面纹理材质。
-
-> 请确保`threejs`版本大于`r118`，否则会出现因`glsl`版本过低，导致着色器代码报错。
+`threejs` 合批工具，集成了多种合批方案。
 
 ## 特性
 
 - 轻量易用
 
-- 基于`threejs`原生材质
+- 支持静态合批、GPU实例化
 
 - 支持`typescript`
+
+## 应用场景
+方法| 材质 | 几何体 | 可变换性 | 生成时间 | 渲染性能 |内存占用
+:-:|:--:|:---:|:----:|:----:|:----:|:-:
+静态合批| 单一 | 无限制 |  无   |  慢   |  优   |多
+GPU单实例化| 单一 | 单一  |  有   |  快   |  良   |少
+GPU多实例化| 单一 | 多个  |  有   |  快  |  良   |少
 
 ## 安装
 
@@ -26,104 +31,157 @@ npm i @dreamoment/gobble
 
 ## 示例
 
-```
+```javascript
+// StaticBatching
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import TwoSidedMaterial from '@dreamoment/gobble'
+import { StaticBatching } from '@dreamoment/gobble'
 
+const commonMaterial = new THREE.MeshStandardMaterial()
 
-const scene = new THREE.Scene()
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000 )
-const ambientLight = new THREE.AmbientLight(0xffffff)
-const directionalLight = new THREE.DirectionalLight(0xffffff)
-directionalLight.position.set(1, 1, 1)
-scene.add(ambientLight, directionalLight)
-
-const renderer = new THREE.WebGLRenderer()
-renderer.setSize(window.innerWidth, window.innerHeight)
-document.body.appendChild(renderer.domElement)
-
-const controls = new OrbitControls(camera, renderer.domElement)
-
-camera.position.z += 5
-
-
-let textureLoader = new THREE.TextureLoader()
-const textureFront = textureLoader.load('./images/red.png')
-const textureBack = textureLoader.load('./images/blue.png')
-
-const twoSidedMaterial = new TwoSidedMaterial(new THREE.MeshStandardMaterial())
-twoSidedMaterial.setTextureFront(textureFront)
-twoSidedMaterial.setTextureBack(textureBack)
-
-// or
-// twoSidedMaterial.setTextures(textureFront, textureBack)
-
-const material = twoSidedMaterial.getMaterial()
-const plane = new THREE.Mesh(new THREE.PlaneGeometry(), material)
-scene.add( plane )
-
-const animate = () => {
-  controls.update()
-  renderer.render(scene, camera)
-}
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight
-  camera.updateProjectionMatrix()
-  renderer.setSize(window.innerWidth, window.innerHeight)
-})
-
-renderer.setAnimationLoop(animate)
+const staticBatching = new StaticBatching([group1, group2], commonMaterial, total)
+const mesh = staticBatching.getMesh()
+scene.add(mesh)
 ```
 
-## API
+```javascript
+import * as THREE from 'three'
 
-```
-type MaterialEnabled = THREE.LineBasicMaterial |
-    THREE.MeshBasicMaterial |
-    THREE.MeshDepthMaterial |
-    THREE.MeshDistanceMaterial |
-    THREE.MeshLambertMaterial |
-    THREE.MeshMatcapMaterial |
-    THREE.MeshPhongMaterial |
-    THREE.MeshPhysicalMaterial |
-    THREE.MeshStandardMaterial |
-    THREE.MeshToonMaterial |
-    THREE.PointsMaterial |
-    THREE.SpriteMaterial
+const sphereGeometry = new THREE.SphereGeometry(1.0, 16, 8)
+const commonMaterial = new THREE.MeshStandardMaterial()
 
-new TwoSidedMaterial(material: MaterialEnabled)
+const total = 100
+const instancingSingle = new GPUInstancing.Single(sphereGeometry, commonMaterial, total)
+// If you take the first child, do the same for the other 99
+const object3D = instancingSingle.create()
+object3D.setPosition(child.position)
+object3D.setRotation(child.rotation)
+object3D.setScale(child.scale)
+instancingSingle.add(object3D)
 ```
 
-### getMaterial
+```javascript
+import * as THREE from 'three'
+import { StaticBatching, GPUInstancing } from '@dreamoment/gobble'
 
-获取 `threejs` 材质实例。
+const sphereGeometry = new THREE.SphereGeometry(1.0, 16, 8)
+const cylinderGeometry = new THREE.CylinderGeometry(1, 1, 2, 16)
+const commonMaterial = new THREE.MeshStandardMaterial()
 
-```
-getMaterial(): MaterialEnabled
-```
-
-### setTextureFront
-
-设置材质正面的纹理。
-
-```
-setTextureFront(texture: THREE.Texture): void
-```
-
-### setTextureBack
-
-设置材质反面的纹理。
-
-```
-setTextureBack(texture: THREE.Texture): void
+const total = 100
+const instancingMultiple = new GPUInstancing.Multiple([sphereGeometry, c], commonMaterial, total)
+// If you take the first child, do the same for the other 99
+const object3D = instancingMultiple.create(0)       // base sphereGeometry
+// const object3D = instancingMultiple.create(1)    // base cylinderGeometry
+object3D.setPosition(child.position)
+object3D.setRotation(child.rotation)
+object3D.setScale(child.scale)
+instancingMultiple.add(object3D)
 ```
 
-### setTextures
+## StaticBatching API
 
-设置材质正面、反面的纹理。
+静态合批。
 
 ```
-setTextures(textureFront: THREE.Texture, textureBack: THREE.Texture): void
+new StaticBatching(object3Ds: THREE.Object3D[], material?: THREE.Material)
+```
+
+### getMesh
+
+获取处理后的网格。
+
+```
+getMesh(): THREE.Mesh
+```
+
+## GPUInstancing API
+
+GPU 单实例化。
+
+```
+new GPUInstancing.Single(geometry: THREE.BufferGeometry, material: THREE.Material, total: number)
+```
+
+GPU 多实例化。
+
+```
+new GPUInstancing.Multiple(geometries: THREE.BufferGeometry[], material: THREE.Material, total: number)
+```
+
+### getMesh
+
+获取处理后的网格。
+
+```
+getMesh(): THREE.Mesh
+```
+
+### create
+
+生成子物体。
+
+```
+// from GPUInstancing.Single
+create(): GPUInstancingObject3D
+```
+
+```
+// from GPUInstancing.Multiple
+create(type: number): GPUInstancingObject3D
+```
+
+### add
+
+添加子物体。
+
+```
+add(object3D: GPUInstancingObject3D): GPUInstancingMultiple
+```
+
+### remove
+
+移除子物体。
+
+```
+remove(object3D: GPUInstancingObject3D): GPUInstancingMultiple
+```
+
+## GPUInstancingObject3D API
+
+GPU 实例化生成的子物体。
+
+### getPosition / setPosition
+
+获取/设置子物体的定位信息。
+
+```
+getPosition(): THREE.Vector3
+setPosition(position: THREE.Vector3): void
+```
+
+### getRotation / setRotation
+
+获取/设置子物体的旋转信息。
+
+```
+getRotation(): THREE.Euler
+setRotation(rotation: THREE.Euler): void
+```
+
+### getScale / setScale
+
+获取/设置子物体的缩放信息。
+
+```
+getScale(): THREE.Vector3
+setScale(scale: THREE.Vector3): void
+```
+
+### getVisible / setVisible
+
+获取/设置子物体的可见性。
+
+```
+getVisible(): boolean
+setVisible(visible: boolean): void
 ```

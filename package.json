@@ -19,6 +19,7 @@
   "devDependencies": {
     "@types/node": "^20.10.5",
     "@types/three": "^0.159.0",
+    "@types/uuid": "^9.0.7",
     "@vitejs/plugin-vue": "^4.5.2",
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
@@ -28,6 +29,7 @@
   },
   "dependencies": {
     "normalize.css": "^8.0.1",
-    "three": "^0.160.0"
+    "three": "^0.160.0",
+    "uuid": "^9.0.1"
   }
 }

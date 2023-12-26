@@ -8,8 +8,6 @@ Language: English | [中文简体](README_zh_cn.md)
 
 Two-sided texture material.
 
-> Make sure that the version of `threejs` is greater than `r118`, otherwise the shader code will error because the version of `glsl` is too low.
-
 ## Features
 
 - lightweight and easy to use
@@ -17,6 +15,13 @@ Two-sided texture material.
 - based on `threejs` native material
 
 - support `typescript`
+
+## Scenarios
+method | material | geometry | transformability | generated time | rendering performance | memory usage
+:-:|:--------:|:--------:|:----------------:|:--------------:|:---------------------:|:-:
+Static Batching|    single    |   unlimited    |        no        |      slow      |        better         |high
+GPU Instancing Single|    single    |  single  |       yes        |      fast      |         good          |low
+GPU Instancing Multiple|    single    | multiple |        yes         |       fast        |         good          |low
 
 ## Install
 
@@ -26,104 +31,157 @@ npm i @dreamoment/gobble
 
 ## Examples
 
-```
+```javascript
+// StaticBatching
 import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import TwoSidedMaterial from '@dreamoment/gobble'
+import { StaticBatching } from '@dreamoment/gobble'
 
+const commonMaterial = new THREE.MeshStandardMaterial()
 
-const scene = new THREE.Scene()
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000 )
-const ambientLight = new THREE.AmbientLight(0xffffff)
-const directionalLight = new THREE.DirectionalLight(0xffffff)
-directionalLight.position.set(1, 1, 1)
-scene.add(ambientLight, directionalLight)
-
-const renderer = new THREE.WebGLRenderer()
-renderer.setSize(window.innerWidth, window.innerHeight)
-document.body.appendChild(renderer.domElement)
-
-const controls = new OrbitControls(camera, renderer.domElement)
-
-camera.position.z += 5
-
-
-let textureLoader = new THREE.TextureLoader()
-const textureFront = textureLoader.load('./images/red.png')
-const textureBack = textureLoader.load('./images/blue.png')
-
-const twoSidedMaterial = new TwoSidedMaterial(new THREE.MeshStandardMaterial())
-twoSidedMaterial.setTextureFront(textureFront)
-twoSidedMaterial.setTextureBack(textureBack)
-
-// or
-// twoSidedMaterial.setTextures(textureFront, textureBack)
-
-const material = twoSidedMaterial.getMaterial()
-const plane = new THREE.Mesh(new THREE.PlaneGeometry(), material)
-scene.add( plane )
-
-const animate = () => {
-  controls.update()
-  renderer.render(scene, camera)
-}
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight
-  camera.updateProjectionMatrix()
-  renderer.setSize(window.innerWidth, window.innerHeight)
-})
-
-renderer.setAnimationLoop(animate)
+const staticBatching = new StaticBatching([group1, group2], commonMaterial, total)
+const mesh = staticBatching.getMesh()
+scene.add(mesh)
 ```
 
-## API
+```javascript
+import * as THREE from 'three'
 
-```
-type MaterialEnabled = THREE.LineBasicMaterial |
-    THREE.MeshBasicMaterial |
-    THREE.MeshDepthMaterial |
-    THREE.MeshDistanceMaterial |
-    THREE.MeshLambertMaterial |
-    THREE.MeshMatcapMaterial |
-    THREE.MeshPhongMaterial |
-    THREE.MeshPhysicalMaterial |
-    THREE.MeshStandardMaterial |
-    THREE.MeshToonMaterial |
-    THREE.PointsMaterial |
-    THREE.SpriteMaterial
+const sphereGeometry = new THREE.SphereGeometry(1.0, 16, 8)
+const commonMaterial = new THREE.MeshStandardMaterial()
 
-new TwoSidedMaterial(material: MaterialEnabled)
+const total = 100
+const instancingSingle = new GPUInstancing.Single(sphereGeometry, commonMaterial, total)
+// If you take the first child, do the same for the other 99
+const object3D = instancingSingle.create()
+object3D.setPosition(child.position)
+object3D.setRotation(child.rotation)
+object3D.setScale(child.scale)
+instancingSingle.add(object3D)
 ```
 
-### getMaterial
+```javascript
+import * as THREE from 'three'
+import { StaticBatching, GPUInstancing } from '@dreamoment/gobble'
 
-Gets the `threejs` material instance.
+const sphereGeometry = new THREE.SphereGeometry(1.0, 16, 8)
+const cylinderGeometry = new THREE.CylinderGeometry(1, 1, 2, 16)
+const commonMaterial = new THREE.MeshStandardMaterial()
 
-```
-getMaterial(): MaterialEnabled
-```
-
-### setTextureFront
-
-Set the texture for the front of the material.
-
-```
-setTextureFront(texture: THREE.Texture): void
-```
-
-### setTextureBack
-
-Set the texture on the opposite side of the material.
-
-```
-setTextureBack(texture: THREE.Texture): void
+const total = 100
+const instancingMultiple = new GPUInstancing.Multiple([sphereGeometry, c], commonMaterial, total)
+// If you take the first child, do the same for the other 99
+const object3D = instancingMultiple.create(0)       // base sphereGeometry
+// const object3D = instancingMultiple.create(1)    // base cylinderGeometry
+object3D.setPosition(child.position)
+object3D.setRotation(child.rotation)
+object3D.setScale(child.scale)
+instancingMultiple.add(object3D)
 ```
 
-### setTextures
+## StaticBatching API
 
-Set the textures for the front and back of the material.
+Static batching.
 
 ```
-setTextures(textureFront: THREE.Texture, textureBack: THREE.Texture): void
+new StaticBatching(object3Ds: THREE.Object3D[], material?: THREE.Material)
+```
+
+### getMesh
+
+Get the processed mesh.
+
+```
+getMesh(): THREE.Mesh
+```
+
+## GPUInstancing API
+
+GPU Instancing Single.
+
+```
+new GPUInstancing.Single(geometry: THREE.BufferGeometry, material: THREE.Material, total: number)
+```
+
+GPU Instancing Multiple.
+
+```
+new GPUInstancing.Multiple(geometries: THREE.BufferGeometry[], material: THREE.Material, total: number)
+```
+
+### getMesh
+
+Get the processed mesh.
+
+```
+getMesh(): THREE.Mesh
+```
+
+### create
+
+Generate a child object.
+
+```
+// from GPUInstancing.Single
+create(): GPUInstancingObject3D
+```
+
+```
+// from GPUInstancing.Multiple
+create(type: number): GPUInstancingObject3D
+```
+
+### add
+
+Add a child object.
+
+```
+add(object3D: GPUInstancingObject3D): GPUInstancingMultiple
+```
+
+### remove
+
+Remove a child object.
+
+```
+remove(object3D: GPUInstancingObject3D): GPUInstancingMultiple
+```
+
+## GPUInstancingObject3D API
+
+The child object that GPUInstancing generates.
+
+### getPosition / setPosition
+
+Get/set the position information of the child object.
+
+```
+getPosition(): THREE.Vector3
+setPosition(position: THREE.Vector3): void
+```
+
+### getRotation / setRotation
+
+Get/set the rotation information of the child object.
+
+```
+getRotation(): THREE.Euler
+setRotation(rotation: THREE.Euler): void
+```
+
+### getScale / setScale
+
+Get/set the scale information of the child object.
+
+```
+getScale(): THREE.Vector3
+setScale(scale: THREE.Vector3): void
+```
+
+### getVisible / setVisible
+
+Get/set the visible information of the child object.
+
+```
+getVisible(): boolean
+setVisible(visible: boolean): void
 ```
