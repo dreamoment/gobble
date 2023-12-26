@@ -36,7 +36,7 @@ import { StaticBatching } from '@dreamoment/gobble'
 
 const commonMaterial = new THREE.MeshStandardMaterial()
 
-const staticBatching = new StaticBatching([group1, group2], commonMaterial, total)
+const staticBatching = new StaticBatching([group1, group2], commonMaterial)
 const mesh = staticBatching.getMesh()
 scene.add(mesh)
 ```
