@@ -1,7 +1,5 @@
 <h1 align="center">gobble</h1>
 
-![](/docs/preview.gif)
-
 语言: [English](README.md) | 中文简体
 
 ## gobble 是什么 ?

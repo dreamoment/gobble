@@ -1,18 +1,16 @@
 <h1 align="center">gobble</h1>
 
-![](/docs/preview.gif)
-
 Language: English | [中文简体](README_zh_cn.md)
 
 ## What is gobble ?
 
-Two-sided texture material.
+`threejs` batching tool that integrates multiple batching methods.
 
 ## Features
 
 - lightweight and easy to use
 
-- based on `threejs` native material
+- support static batching and GPU Instancing
 
 - support `typescript`
 
